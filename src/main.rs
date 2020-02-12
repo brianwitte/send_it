@@ -9,7 +9,7 @@ use rocket::data::{self, FromDataSimple};
 use rocket::http::{Status, ContentType};
 
 
-#[derive(Debug)]
+//#[derive(Debug)]
 struct Login {
     username: String,
     password: String
