@@ -1,8 +1,11 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
 #[macro_use] extern crate rocket;
+
 use std::io::Read;
 use std::fmt;
+
+use base64::decode;
 
 use rocket::{Request, Data, Outcome, Outcome::*};
 use rocket::data::{self, FromDataSimple};
@@ -22,10 +25,12 @@ impl FromDataSimple for Login {
 
     fn from_data(req: &Request, data: Data) -> data::Outcome<Self, String> {
         // Ensure the content type is correct before opening the data.
-        let login_ct = ContentType::new("application", "x-login");
+        let login_ct = ContentType::new("Authorization", "Basic");
         if req.content_type() != Some(&login_ct) {
             return Outcome::Forward(data);
         }
+
+	data = base64::decode(data).unwrap();
 
         // Read the data into a String.
         let mut string = String::new();
@@ -46,27 +51,23 @@ impl FromDataSimple for Login {
         };
 
         // Return successfully.
-        Success(Login { username, password})
+        Success(Login {username, password})
     }
 }
 
-impl fmt::Display for Login{
-    // This trait requires `fmt` with this exact signature.
+impl fmt::Display for Login {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
         write!(f, "username: {}, password: {}", self.username, self.password)
     }
 }
+
 #[get("/")]
 fn index() -> &'static str {
     "Hello, world!"
 }
 
-// curl -d "uNiqUE_User1337&specialpassword5000" -H "Content-Type: application/x-login" -X POST http://localhost:8000/api/testpost
-#[post("/testpost", format = "application/x-login", data = "<input>")]
+// curl -d "uNiqUE_User1337:specialpassword5000" -H "Content-Type: application/x-login" -X POST http://localhost:8000/api/testpost
+#[post("/testpost", format = "Authorization/Basic", data = "<input>")]
 fn test_login_post(input: Login) -> String {
     format!("http POST -> the input here is {}\n", input)
 }
